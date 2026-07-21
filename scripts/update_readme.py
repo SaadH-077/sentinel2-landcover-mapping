@@ -30,151 +30,91 @@ PLACEHOLDER = (
 )
 
 
-def _index(results: list[dict]) -> dict:
-    return {(r.get("notebook"), r.get("arm")): r for r in results}
-
-
-def _f1(entry: dict | None) -> str:
-    if entry is None:
-        return "—"
-    v = entry.get("test_macro_f1")
-    if isinstance(v, dict):
-        return f"{v['mean']:.3f} ± {v['std']:.3f}"
-    return f"{v:.3f}" if isinstance(v, float) else "—"
-
-
-def headline_table(results: list[dict]) -> str:
-    """One table telling the whole story, ordered by how many labels were used.
-
-    Deliberately not a dump of results.json: the point of this project is the
-    trade between labels and performance, so the table is grouped by labelling
-    budget rather than by notebook.
-    """
+def results_section(results: list[dict]) -> str:
     if not results:
         return PLACEHOLDER
-    idx = _index(results)
-    ver = idx.get(("07", "verification"))
-    sweep = idx.get(("04", "label_efficiency_sweep"))
+    # `_ceiling` duplicates arm2_resnet18_13band under a different name — it exists
+    # so NB04 can look up one number, not as a separate experiment. Any arm whose
+    # name starts with "_" is bookkeeping and is kept out of the public table.
+    rows = [r for r in results if not str(r.get("arm", "")).startswith("_")]
 
-    rows: list[tuple[str, str, str, str, str]] = []
-
-    # --- zero-shot -----------------------------------------------------------
-    if ver:
-        best = ver.get("best_strategy_per_model", {})
-        prompts = ver.get("prompt_sweep", {})
-        for model in ("CLIP", "RemoteCLIP"):
-            key = f"{model}|{best.get(model)}"
-            if key in prompts:
-                label = "CLIP ViT-B/32" if model == "CLIP" else "RemoteCLIP ViT-B/32"
-                rows.append(("zero", f"{label} — zero-shot", "RGB (3 of 13 bands)", "**0**",
-                             f"{prompts[key]['macro_f1']:.3f}"))
-
-    # --- few-shot ------------------------------------------------------------
-    if sweep:
-        curves = sweep.get("curves", {})
-        probes = {n: c for n, c in curves.items() if not c.get("reference")}
-        for k in (1, 10, 100):
-            best_name, best_mean, best_std = None, -1.0, 0.0
-            for name, c in probes.items():
-                if "Fine-tuned" in name or k not in c["k"]:
-                    continue
-                i = c["k"].index(k)
-                if c["mean"][i] > best_mean:
-                    best_name, best_mean, best_std = name, c["mean"][i], c["std"][i]
-            if best_name:
-                rows.append(("few", f"Linear probe on frozen {best_name}", "RGB (3 of 13 bands)",
-                             f"{k} / class ({k * 10:,})", f"{best_mean:.3f} ± {best_std:.3f}"))
-        ft = curves.get("Fine-tuned ResNet-18 (RGB)")
-        if ft and 100 in ft["k"]:
-            i = ft["k"].index(100)
-            rows.append(("few", "Fine-tuned ResNet-18", "RGB (3 of 13 bands)", "100 / class (1,000)",
-                         f"{ft['mean'][i]:.3f} ± {ft['std'][i]:.3f}"))
-
-    # --- full supervision ----------------------------------------------------
-    full = "18,900"
-    supervised = [
-        ("arm0_random_forest", "Random Forest on 29 spectral statistics", "13-band summary stats"),
-        ("arm1_small_cnn", "Small CNN, trained from scratch", "13-band"),
-        ("arm2_resnet18_rgb", "ResNet-18, ImageNet-pretrained", "RGB (3 of 13 bands)"),
-        ("arm3_vit_small", "ViT-S/16, ImageNet-pretrained", "13-band"),
-        ("arm2_resnet18_13band", "**ResNet-18, ImageNet-pretrained, inflated stem**", "**13-band**"),
-    ]
-    for arm, label, inp in supervised:
-        entry = idx.get(("02", arm))
-        # The RGB ablation was re-run at 3 seeds in NB07; prefer that measurement.
-        if arm == "arm2_resnet18_rgb" and ver and ver.get("ablations_3_seed", {}).get("resnet18_rgb"):
-            s = ver["ablations_3_seed"]["resnet18_rgb"]
-            value = f"{s['mean']:.3f} ± {s['std']:.3f}"
-        else:
-            value = _f1(entry)
-        bold = arm == "arm2_resnet18_13band"
-        rows.append(("sup", label, inp, f"**{full}**" if bold else full,
-                     f"**{value}**" if bold else value))
-
-    header = [
-        "| Approach | Input | Labels used | Test macro-F1 |",
-        "|:---|:---|---:|---:|",
-    ]
-    group_titles = {
-        "zero": "| **No labels** | | | |",
-        "few": "| **A handful of labels** | | | |",
-        "sup": "| **Full supervision** | | | |",
-    }
-    out, seen = header, set()
-    for group, label, inp, labels, value in rows:
-        if group not in seen:
-            out.append(group_titles[group])
-            seen.add(group)
-        out.append(f"| {label} | {inp} | {labels} | {value} |")
-
-    # --- the honesty row -----------------------------------------------------
-    if ver and ver.get("split_comparison"):
-        blocked = next((v for k, v in ver["split_comparison"].items() if "blocked" in k), None)
-        if blocked:
-            out.append("| **Corrected for leakage** | | | |")
-            out.append(
-                f"| Same ResNet-18, scene-blocked split | 13-band | {full} | "
-                f"{blocked['macro_f1']:.3f} |"
-            )
-    return "\n".join(out)
+    # Chapter 07 re-ran the two NB02 ablations at 3 seeds. Those measurements
+    # supersede the single-seed rows, so the table shows the better ones —
+    # rendered from the NB07 entry rather than copied into results.json, so the
+    # ledger keeps exactly one record of each measurement.
+    verification = next((r for r in results if r.get("arm") == "verification"), None)
+    if verification:
+        labels = {
+            "resnet18_rgb": ("RGB only", "3 seeds (NB07) — supersedes the NB02 single-seed run"),
+            "resnet18_randomstem": ("13-band", "3 seeds (NB07) — pretrained stem discarded"),
+        }
+        superseded = {f"arm2_{k}" for k in labels}
+        rows = [r for r in rows if r.get("arm") not in superseded]
+        for arm, stats in (verification.get("ablations_3_seed") or {}).items():
+            name, note = labels.get(arm, (arm, "3 seeds (NB07)"))
+            rows.append({
+                "notebook": "02", "arm": f"arm2_{arm}", "input": name,
+                "test_macro_f1": stats, "notes": note,
+            })
+    return E.results_table(rows, notebooks={"02", "03"})
 
 
 def label_efficiency_section(results: list[dict]) -> str:
     entry = next((r for r in results if r.get("arm") == "label_efficiency_sweep"), None)
     if entry is None:
         return PLACEHOLDER
-    curves, k_values = entry.get("curves", {}), entry.get("k_values", [])
-    lines = ["| Frozen encoder | " + " | ".join(f"**k={k}**" for k in k_values) + " |"]
-    lines.append("|:---" + "|---:" * len(k_values) + "|")
+
+    curves = entry.get("curves", {})
+    k_values = entry.get("k_values", [])
+    lines = ["| Frozen encoder | " + " | ".join(f"k={k}" for k in k_values) + " |"]
+    lines.append("|---" * (len(k_values) + 1) + "|")
     for name, curve in curves.items():
-        if curve.get("reference"):
-            continue
-        cells = [f"{m:.3f}" for m in curve["mean"]]
-        if len(cells) < len(k_values):  # the fine-tuning arm ran at a subset of k
-            cells = [f"{curve['mean'][curve['k'].index(k)]:.3f}" if k in curve["k"] else "—"
-                     for k in k_values]
-        lines.append(f"| {name} | " + " | ".join(cells) + " |")
-    return "\n".join(lines)
+        tag = " *(reference — saw all labels)*" if curve.get("reference") else ""
+        cells = [f"{m:.3f} ± {s:.3f}" for m, s in zip(curve["mean"], curve["std"])]
+        lines.append(f"| {name}{tag} | " + " | ".join(cells) + " |")
+
+    extras = []
+    if entry.get("supervised_ceiling_macro_f1") is not None:
+        extras.append(
+            f"Full-supervision ceiling (all {'18,900'} training labels): "
+            f"**{entry['supervised_ceiling_macro_f1']:.3f}** macro-F1."
+        )
+    for name, value in (entry.get("zero_shot_anchors") or {}).items():
+        extras.append(f"{name} zero-shot (0 labels): **{value:.3f}** macro-F1.")
+    if entry.get("crossover_k_finetune_beats_probe"):
+        extras.append(
+            f"Fine-tuning overtakes every frozen probe at roughly "
+            f"**k = {entry['crossover_k_finetune_beats_probe']}** labels per class."
+        )
+    return "\n".join(lines) + ("\n\n" + "  \n".join(extras) if extras else "")
 
 
 def scene_section(results: list[dict]) -> str:
     entry = next((r for r in results if r.get("arm") == "scene_inference"), None)
     if entry is None:
         return PLACEHOLDER
-    areas = entry.get("areas_hectares") or {}
-    top = sorted(((k, v) for k, v in areas.items() if not k.startswith("_")),
-                 key=lambda kv: -kv[1])[:4]
-    parts = ", ".join(f"{name} {ha:,.0f} ha" for name, ha in top)
-    return (
-        f"Scene `{entry.get('item_id')}` — {str(entry.get('scene_datetime'))[:10]}, "
-        f"{entry.get('cloud_cover'):.2f} % cloud. Largest predicted classes: {parts}. "
-        f"The two defensible normalisation choices disagree on "
-        f"**{entry.get('normalisation_disagreement', 0):.1%}** of valid pixels."
-    )
+    lines = [
+        f"Scene: `{entry.get('item_id')}` over {entry.get('aoi')}, "
+        f"{str(entry.get('scene_datetime'))[:10]}, {entry.get('cloud_cover')}% cloud.",
+        "",
+        "| Class | Predicted area (ha) |",
+        "|---|---|",
+    ]
+    for name, ha in (entry.get("areas_hectares") or {}).items():
+        lines.append(f"| {name} | {ha:,.0f} |")
+    if entry.get("normalisation_disagreement") is not None:
+        lines += [
+            "",
+            f"The two normalisation choices (training statistics vs scene statistics) "
+            f"disagree on **{entry['normalisation_disagreement']:.1%}** of valid pixels — "
+            "identical weights, identical pixels, different preprocessing. That is the "
+            "L1C→L2A domain shift, measured.",
+        ]
+    return "\n".join(lines)
 
 
 SECTIONS = {
-    "headline": headline_table,
+    "results": results_section,
     "label_efficiency": label_efficiency_section,
     "scene": scene_section,
 }
@@ -190,7 +130,7 @@ def main() -> int:
         if not pattern.search(text):
             print(f"warning: no markers for section {name!r} in README.md")
             continue
-        body = builder(results)
+        body = builder(results)  # evaluated before sub, so the closure below is safe
         text = pattern.sub(lambda m, body=body: m.group(1) + body + m.group(2), text)
     README.write_text(text, encoding="utf-8")
     print(f"updated {README} from {len(results)} recorded result entries")
