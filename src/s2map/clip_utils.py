@@ -127,15 +127,20 @@ def preprocess_chips(chips: np.ndarray, preprocess, batch: int = 256):
 def load_openclip(model_name: str = "ViT-B-32", pretrained: str = "openai", device: str | None = None):
     """Load a generic OpenCLIP checkpoint. Returns (model, preprocess, tokenizer)."""
     import open_clip
-    import torch
 
     device = device or cfg.get_device()
     model, _, preprocess = open_clip.create_model_and_transforms(model_name, pretrained=pretrained)
     tokenizer = open_clip.get_tokenizer(model_name)
     model = model.to(device).eval()
+    # Freeze THIS model's parameters only. Emphatically do not call
+    # torch.set_grad_enabled(False) here: that flips a global, session-wide
+    # switch, so every later backward() in the notebook — the fine-tuning arm in
+    # NB04, for instance — dies with "element 0 of tensors does not require grad
+    # and does not have a grad_fn", thousands of lines away from this function
+    # and with nothing in the traceback pointing back to CLIP. Local no_grad()
+    # blocks around the encode calls give the same speed with none of the reach.
     for p in model.parameters():
         p.requires_grad_(False)
-    torch.set_grad_enabled(False)
     return model, preprocess, tokenizer
 
 

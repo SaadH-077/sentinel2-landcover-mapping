@@ -132,23 +132,28 @@ def fit(
     epochs_without_improvement = 0
     t0 = time.time()
 
+    # Explicitly enable autograd for the training loop rather than inheriting
+    # whatever ambient grad state the notebook happens to be in. A frozen
+    # feature extractor loaded earlier in the same session must not be able to
+    # silently disable training here.
     for epoch in range(train_cfg.epochs):
         model.train()
         running, n_seen = 0.0, 0
-        for x, y in train_loader:
-            x = x.to(device, non_blocking=True)
-            y = y.to(device, non_blocking=True)
-            optimiser.zero_grad(set_to_none=True)
-            with torch.autocast(device_type="cuda", enabled=train_cfg.amp and device == "cuda"):
-                loss = criterion(model(x), y)
-            scaler.scale(loss).backward()
-            if train_cfg.grad_clip is not None:
-                scaler.unscale_(optimiser)
-                torch.nn.utils.clip_grad_norm_(model.parameters(), train_cfg.grad_clip)
-            scaler.step(optimiser)
-            scaler.update()
-            running += float(loss.item()) * x.size(0)
-            n_seen += x.size(0)
+        with torch.enable_grad():
+            for x, y in train_loader:
+                x = x.to(device, non_blocking=True)
+                y = y.to(device, non_blocking=True)
+                optimiser.zero_grad(set_to_none=True)
+                with torch.autocast(device_type="cuda", enabled=train_cfg.amp and device == "cuda"):
+                    loss = criterion(model(x), y)
+                scaler.scale(loss).backward()
+                if train_cfg.grad_clip is not None:
+                    scaler.unscale_(optimiser)
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), train_cfg.grad_clip)
+                scaler.step(optimiser)
+                scaler.update()
+                running += float(loss.item()) * x.size(0)
+                n_seen += x.size(0)
 
         history.lr.append(optimiser.param_groups[0]["lr"])
         scheduler.step()
