@@ -2,21 +2,43 @@
 # s2-chips-to-map — pinned dependencies
 #
 # Target environment: Google Colab (Ubuntu 22.04, Python 3.11/3.12, NVIDIA T4).
-# Colab already ships torch/torchvision built against the correct CUDA version,
-# so torch is listed with a lower bound rather than an exact pin: forcing an
-# exact torch pin on Colab triggers a multi-GB reinstall and often a CUDA
-# mismatch. Everything else is pinned exactly.
 #
-# Install order matters on Colab: install the geospatial stack before samgeo.
+# PINNING POLICY — read this before "tightening" anything here.
+#
+# Two groups, deliberately treated differently:
+#
+#   (a) The ABI-coupled scientific core: numpy, scipy, pandas, scikit-learn,
+#       matplotlib, torch, torchvision. These ship compiled extensions that are
+#       built against a specific numpy C ABI. Colab preinstalls a mutually
+#       consistent set of them. Pinning an exact version here does NOT give
+#       reproducibility on Colab — it *downgrades a package on disk while the
+#       running kernel still holds the old one in memory*, and the next import
+#       of any compiled extension dies with
+#
+#           ValueError: numpy.dtype size changed, may indicate binary
+#           incompatibility. Expected 96 from C header, got 88 from PyObject
+#
+#       (96 = the numpy 2.x dtype struct, 88 = numpy 1.x). So this group gets
+#       compatible RANGES, and pip's default "only if needed" resolution leaves
+#       Colab's working set untouched.
+#
+#   (b) Everything else — pure-Python or independently versioned libraries.
+#       These are pinned exactly, which is where pinning actually buys
+#       reproducibility.
+#
+# For a byte-identical local environment, install into a fresh venv where the
+# ranges below resolve deterministically against a lock file of your choosing.
 # ---------------------------------------------------------------------------
 
-# --- core numerics -----------------------------------------------------------
-numpy==1.26.4
-scipy==1.13.1
-pandas==2.2.2
-scikit-learn==1.5.1
-matplotlib==3.9.2
-seaborn==0.13.2
+# --- ABI-coupled core: ranges, NOT exact pins (see above) --------------------
+numpy>=1.26,<3
+scipy>=1.11,<2
+pandas>=2.0,<3
+scikit-learn>=1.3,<2
+matplotlib>=3.7,<4
+seaborn>=0.13,<0.14
+
+# --- pure python -------------------------------------------------------------
 tqdm==4.66.5
 pyyaml==6.0.2
 
@@ -47,15 +69,20 @@ pystac-client==0.8.3
 geopandas==1.0.1
 contextily==1.6.2
 
-# --- dimensionality reduction (NB03 embedding plots) -------------------------
-umap-learn==0.5.6
-
-# --- explainability (NB06) ---------------------------------------------------
-grad-cam==1.5.4
-
 # --- tooling -----------------------------------------------------------------
 pytest==8.3.2
 ruff==0.6.4
+
+# --- deliberately NOT installed by default -----------------------------------
+# umap-learn pulls numba, which is tightly coupled to a narrow numpy range and
+# is the most common cause of a numpy downgrade on Colab. Notebook 03 falls back
+# to scikit-learn's t-SNE automatically, so this is opt-in:
+#
+#   umap-learn==0.5.6
+#
+# grad-cam is not required: notebook 06 implements Grad-CAM directly in ~15
+# lines of torch hooks, so the explainability chapter has no dependency that can
+# break the kernel.
 
 # --- optional / installed inside NB05 only -----------------------------------
 # These are heavy and fragile (groundingdino builds a CUDA extension). They are

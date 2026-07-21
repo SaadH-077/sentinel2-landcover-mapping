@@ -218,6 +218,12 @@ def print_environment() -> None:
             print(f"{mod:<16} {getattr(m, '__version__', 'unknown')}")
         except ImportError:
             print(f"{mod:<16} not installed")
+        except Exception as exc:  # noqa: BLE001
+            # Deliberately broad. A compiled extension built against a different
+            # numpy ABI raises ValueError, not ImportError, and letting that
+            # escape would kill the setup cell of every notebook. Report it and
+            # keep going: `check_environment()` below explains the fix.
+            print(f"{mod:<16} FAILED TO IMPORT — {type(exc).__name__}: {exc}")
     try:
         import torch
 
@@ -229,3 +235,50 @@ def print_environment() -> None:
     except ImportError:
         pass
     print(f"repo root        {ROOT}")
+
+
+def check_environment(verbose: bool = True) -> bool:
+    """Detect the "installed numpy != imported numpy" trap. Returns True if sane.
+
+    On Colab, `pip install` can replace numpy *on disk* while the running kernel
+    still holds the previous version *in memory*. Compiled extensions then load
+    against a numpy whose C struct sizes differ from the one they were built
+    for, and raise
+
+        ValueError: numpy.dtype size changed, may indicate binary
+        incompatibility. Expected 96 from C header, got 88 from PyObject
+
+    The failure is confusing because nothing in the traceback mentions pip. The
+    only fix is to restart the runtime so the interpreter picks up one
+    consistent numpy — no amount of re-running the cell will help, which is
+    exactly why this check prints an instruction instead of a warning.
+    """
+    import importlib.metadata as md
+
+    problems: list[str] = []
+    try:
+        installed = md.version("numpy")
+        if installed != np.__version__:
+            problems.append(
+                f"numpy {installed} is installed on disk but {np.__version__} is loaded in "
+                "memory — a pip install replaced it after the kernel started"
+            )
+    except md.PackageNotFoundError:
+        pass
+
+    try:
+        import torch  # noqa: F401
+    except Exception as exc:  # noqa: BLE001
+        problems.append(f"torch failed to import: {type(exc).__name__}: {exc}")
+
+    if problems and verbose:
+        print("\n" + "!" * 72)
+        for p in problems:
+            print("!! " + p)
+        print("!!")
+        print("!! FIX: Runtime > Restart session, then run this cell again.")
+        print("!!      Do NOT re-run the install; restarting is the whole fix.")
+        print("!" * 72 + "\n")
+    elif verbose:
+        print("environment check  OK (numpy on disk matches numpy in memory)")
+    return not problems

@@ -265,6 +265,15 @@ Before running, set `GITHUB_USER` in the setup cell to your handle, and select
 **Runtime → Change runtime type → T4 GPU** (the setup cell warns if no GPU is
 attached).
 
+**If the setup cell reports a numpy mismatch**, restart the runtime
+(*Runtime → Restart session*) and run it again — re-running without a restart
+cannot fix it. Colab preinstalls a mutually consistent numpy/torch/scipy set;
+if pip replaces one of them on disk, the kernel keeps the old version in memory
+and every compiled extension raises `ValueError: numpy.dtype size changed`.
+`requirements.txt` uses compatible ranges rather than exact pins for that ABI-
+coupled group specifically to avoid this, and `s2map.config.check_environment()`
+detects it and prints the fix.
+
 **Locally:**
 
 ```bash
