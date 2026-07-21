@@ -1,0 +1,513 @@
+[
+  {
+    "notebook": "01",
+    "arm": "dataset_summary",
+    "input": "13-band EuroSAT",
+    "n_samples": 27000,
+    "n_classes": 10,
+    "class_counts": {
+      "AnnualCrop": 3000,
+      "Forest": 3000,
+      "HerbaceousVegetation": 3000,
+      "Highway": 2500,
+      "Industrial": 2500,
+      "Pasture": 2000,
+      "PermanentCrop": 2500,
+      "Residential": 3000,
+      "River": 2500,
+      "SeaLake": 3000
+    },
+    "split_sizes": {
+      "train": 18900,
+      "val": 4050,
+      "test": 4050
+    },
+    "source": "huggingface:blanchon/EuroSAT_MSI",
+    "notes": "L1C top-of-atmosphere; random (not spatially blocked) split",
+    "timestamp": "2026-07-21T11:05:53+00:00"
+  },
+  {
+    "notebook": "02",
+    "arm": "arm0_logreg",
+    "input": "29 spectral features",
+    "test_accuracy": 0.8864197530864197,
+    "test_macro_f1": 0.8815561861443383,
+    "params": 300,
+    "seeds": 1,
+    "notes": "no spatial information at all",
+    "timestamp": "2026-07-21T12:25:54+00:00"
+  },
+  {
+    "notebook": "02",
+    "arm": "arm0_random_forest",
+    "input": "29 spectral features",
+    "test_accuracy": 0.8955555555555555,
+    "test_macro_f1": 0.8910480633200152,
+    "params": null,
+    "seeds": 1,
+    "notes": "400 trees",
+    "timestamp": "2026-07-21T12:25:54+00:00"
+  },
+  {
+    "notebook": "02",
+    "arm": "arm1_small_cnn",
+    "input": "13-band",
+    "test_accuracy": {
+      "mean": 0.9710288065843621,
+      "std": 0.001862338847569514,
+      "values": [
+        0.9723456790123457,
+        0.9683950617283951,
+        0.9723456790123457
+      ]
+    },
+    "test_macro_f1": {
+      "mean": 0.9699268496138905,
+      "std": 0.0019166807088249734,
+      "values": [
+        0.9712673489172359,
+        0.9672163074286162,
+        0.9712968924958195
+      ]
+    },
+    "params": 245354,
+    "seeds": 3,
+    "train_seconds": 354,
+    "notes": "trained from scratch",
+    "timestamp": "2026-07-21T12:25:54+00:00"
+  },
+  {
+    "notebook": "02",
+    "arm": "arm2_resnet18_13band",
+    "input": "13-band",
+    "test_accuracy": {
+      "mean": 0.9845267489711934,
+      "std": 0.0022298299891595,
+      "values": [
+        0.9874074074074074,
+        0.9841975308641975,
+        0.9819753086419754
+      ]
+    },
+    "test_macro_f1": {
+      "mean": 0.9837476150127168,
+      "std": 0.0023236725913617327,
+      "values": [
+        0.9867651429917679,
+        0.9833658271274193,
+        0.981111874918963
+      ]
+    },
+    "params": 11213002,
+    "seeds": 3,
+    "train_seconds": 382,
+    "notes": "ImageNet stem inflated to 13 channels",
+    "timestamp": "2026-07-21T12:25:54+00:00"
+  },
+  {
+    "notebook": "02",
+    "arm": "arm2_resnet18_rgb",
+    "input": "RGB only",
+    "test_accuracy": {
+      "mean": 0.9792592592592593,
+      "std": 0.0,
+      "values": [
+        0.9792592592592593
+      ]
+    },
+    "test_macro_f1": {
+      "mean": 0.9784039926349672,
+      "std": 0.0,
+      "values": [
+        0.9784039926349672
+      ]
+    },
+    "params": 11181642,
+    "seeds": 1,
+    "train_seconds": 239,
+    "notes": "ablation, 1 seed \u2014 the fair comparison for CLIP",
+    "timestamp": "2026-07-21T12:25:54+00:00"
+  },
+  {
+    "notebook": "02",
+    "arm": "arm2_resnet18_randomstem",
+    "input": "13-band",
+    "test_accuracy": {
+      "mean": 0.9824691358024691,
+      "std": 0.0,
+      "values": [
+        0.9824691358024691
+      ]
+    },
+    "test_macro_f1": {
+      "mean": 0.9816983610466471,
+      "std": 0.0,
+      "values": [
+        0.9816983610466471
+      ]
+    },
+    "params": 11213002,
+    "seeds": 1,
+    "train_seconds": 409,
+    "notes": "ablation, 1 seed \u2014 pretrained stem discarded",
+    "timestamp": "2026-07-21T12:25:54+00:00"
+  },
+  {
+    "notebook": "02",
+    "arm": "arm3_vit_small",
+    "input": "13-band",
+    "test_accuracy": {
+      "mean": 0.9813991769547324,
+      "std": 0.0006159106809504624,
+      "values": [
+        0.9807407407407407,
+        0.9812345679012345,
+        0.9822222222222222
+      ]
+    },
+    "test_macro_f1": {
+      "mean": 0.9803281370923077,
+      "std": 0.0005794127080138853,
+      "values": [
+        0.9795903909685117,
+        0.9803881790969431,
+        0.9810058412114684
+      ]
+    },
+    "params": null,
+    "seeds": 3,
+    "train_seconds": 433,
+    "notes": "ViT-S/16 at 64px, interpolated position embeddings",
+    "timestamp": "2026-07-21T12:25:54+00:00"
+  },
+  {
+    "notebook": "02",
+    "arm": "_ceiling",
+    "input": "13-band",
+    "test_macro_f1": {
+      "mean": 0.9837476150127168,
+      "std": 0.0023236725913617327,
+      "values": [
+        0.9867651429917679,
+        0.9833658271274193,
+        0.981111874918963
+      ]
+    },
+    "test_accuracy": {
+      "mean": 0.9845267489711934,
+      "std": 0.0022298299891595,
+      "values": [
+        0.9874074074074074,
+        0.9841975308641975,
+        0.9819753086419754
+      ]
+    },
+    "notes": "full-supervision ceiling used as the dashed line in the NB04 headline figure",
+    "timestamp": "2026-07-21T12:25:55+00:00"
+  },
+  {
+    "notebook": "03",
+    "arm": "clip_vitb32_v1_raw_labels",
+    "input": "RGB only (10 of 13 bands discarded)",
+    "test_accuracy": 0.2958024691358025,
+    "test_macro_f1": 0.24676834571871228,
+    "labels_used": 0,
+    "notes": "zero-shot, prompt strategy v1_raw_labels",
+    "timestamp": "2026-07-21T12:42:39+00:00"
+  },
+  {
+    "notebook": "03",
+    "arm": "clip_vitb32_v2_simple_template",
+    "input": "RGB only (10 of 13 bands discarded)",
+    "test_accuracy": 0.36049382716049383,
+    "test_macro_f1": 0.3243411272871193,
+    "labels_used": 0,
+    "notes": "zero-shot, prompt strategy v2_simple_template",
+    "timestamp": "2026-07-21T12:42:39+00:00"
+  },
+  {
+    "notebook": "03",
+    "arm": "clip_vitb32_v3_natural_names",
+    "input": "RGB only (10 of 13 bands discarded)",
+    "test_accuracy": 0.2985185185185185,
+    "test_macro_f1": 0.2511680192387404,
+    "labels_used": 0,
+    "notes": "zero-shot, prompt strategy v3_natural_names",
+    "timestamp": "2026-07-21T12:42:39+00:00"
+  },
+  {
+    "notebook": "03",
+    "arm": "clip_vitb32_v4_prompt_ensemble",
+    "input": "RGB only (10 of 13 bands discarded)",
+    "test_accuracy": 0.3869135802469136,
+    "test_macro_f1": 0.33467847780089677,
+    "labels_used": 0,
+    "notes": "zero-shot, prompt strategy v4_prompt_ensemble",
+    "timestamp": "2026-07-21T12:42:39+00:00"
+  },
+  {
+    "notebook": "03",
+    "arm": "remoteclip_vitb32",
+    "input": "RGB only (10 of 13 bands discarded)",
+    "test_accuracy": 0.26271604938271603,
+    "test_macro_f1": 0.18650501159783447,
+    "labels_used": 0,
+    "notes": "zero-shot, v4_prompt_ensemble; loaded from chendelong/RemoteCLIP; missing keys: 0",
+    "timestamp": "2026-07-21T12:42:39+00:00"
+  },
+  {
+    "notebook": "04",
+    "arm": "label_efficiency_sweep",
+    "input": "frozen features + logistic probe",
+    "k_values": [
+      1,
+      2,
+      5,
+      10,
+      20,
+      50,
+      100
+    ],
+    "draws_per_point": 5,
+    "curves": {
+      "CLIP ViT-B/32": {
+        "k": [
+          1,
+          2,
+          5,
+          10,
+          20,
+          50,
+          100
+        ],
+        "mean": [
+          0.4442903416515326,
+          0.5481463314418124,
+          0.6924805987636142,
+          0.7838123522326675,
+          0.8326914751205925,
+          0.8759698197073993,
+          0.8998267643760638
+        ],
+        "std": [
+          0.05601598293619484,
+          0.0608459166986437,
+          0.032895681305327086,
+          0.014840527328888792,
+          0.00959696938768852,
+          0.006034236221567325,
+          0.0012945453689732346
+        ],
+        "reference": false
+      },
+      "RemoteCLIP ViT-B/32": {
+        "k": [
+          1,
+          2,
+          5,
+          10,
+          20,
+          50,
+          100
+        ],
+        "mean": [
+          0.4794957139949475,
+          0.6120786005464592,
+          0.7492531690564113,
+          0.8252934587020331,
+          0.8565404828728147,
+          0.8910016644427945,
+          0.9126896717433854
+        ],
+        "std": [
+          0.05550084849389015,
+          0.0450392091806744,
+          0.014555033405022752,
+          0.013380790865019641,
+          0.004433971415055037,
+          0.0034741894232318575,
+          0.0035911879470607107
+        ],
+        "reference": false
+      },
+      "ImageNet ResNet-18": {
+        "k": [
+          1,
+          2,
+          5,
+          10,
+          20,
+          50,
+          100
+        ],
+        "mean": [
+          0.5430731729059077,
+          0.6036323709069956,
+          0.7535184933864937,
+          0.8257544998244166,
+          0.8582406430150984,
+          0.8927208801781958,
+          0.9087200686962378
+        ],
+        "std": [
+          0.03673563863147206,
+          0.07446643792125596,
+          0.020265989479703192,
+          0.01871031940320253,
+          0.0037501295039158384,
+          0.004516064572624666,
+          0.0006218322919393254
+        ],
+        "reference": false
+      },
+      "NB02 supervised 13-band": {
+        "k": [
+          1,
+          2,
+          5,
+          10,
+          20,
+          50,
+          100
+        ],
+        "mean": [
+          0.9819195427004684,
+          0.9830084588354708,
+          0.9850776271773893,
+          0.9839766878357203,
+          0.9841432802162803,
+          0.984167722232742,
+          0.9844435921229124
+        ],
+        "std": [
+          0.0009831124329940579,
+          0.0010231047031561554,
+          0.0011726569283381433,
+          0.001100074189306531,
+          0.0008165840233874346,
+          0.0005510333375657024,
+          0.00047257630143547586
+        ],
+        "reference": true
+      },
+      "Fine-tuned ResNet-18 (RGB)": {
+        "k": [
+          5,
+          20,
+          100
+        ],
+        "mean": [
+          0.642178577888516,
+          0.8483277404732479,
+          0.9312353256083918
+        ],
+        "std": [
+          0.004901121642191456,
+          0.010434759395225677,
+          0.0043771436516816895
+        ],
+        "reference": false
+      }
+    },
+    "crossover_k_finetune_beats_probe": 100,
+    "supervised_ceiling_macro_f1": 0.9837476150127168,
+    "zero_shot_anchors": {
+      "CLIP": 0.33467847780089677,
+      "RemoteCLIP": 0.18650501159783447
+    },
+    "notes": "the NB02 13-band encoder is an upper reference: it saw all training labels",
+    "timestamp": "2026-07-21T13:12:55+00:00"
+  },
+  {
+    "notebook": "05",
+    "arm": "scene_inference",
+    "input": "Sentinel-2 L2A, 13 bands (B10 absent)",
+    "aoi": "Bay of Cadiz, Spain",
+    "bbox": [
+      -6.3,
+      36.48,
+      -6.12,
+      36.62
+    ],
+    "item_id": "S2B_29SQA_20230824_0_L2A",
+    "scene_datetime": "2023-08-24 11:21:14.140000+00:00",
+    "cloud_cover": 0.009914,
+    "normalisation": "scene stats (adapted)",
+    "normalisation_disagreement": 0.6513231552930738,
+    "areas_hectares": {
+      "AnnualCrop": 1563.84,
+      "Forest": 0.0,
+      "HerbaceousVegetation": 409.6,
+      "Highway": 546.24,
+      "Industrial": 1775.04,
+      "Pasture": 3215.32,
+      "PermanentCrop": 3122.76,
+      "Residential": 6724.28,
+      "River": 4452.24,
+      "SeaLake": 4700.04,
+      "_nodata": 2.64
+    },
+    "notes": "EuroSAT-trained (L1C) model applied to L2A \u2014 covariate shift, no ground truth here",
+    "timestamp": "2026-07-21T13:27:54+00:00"
+  },
+  {
+    "notebook": "05",
+    "arm": "worldcover_agreement",
+    "overall_agreement": 0.4281235005296243,
+    "notes": "agreement with an independent product, not accuracy; class schemes mapped lossily (3 EuroSAT built classes -> 1)",
+    "timestamp": "2026-07-21T13:29:04+00:00"
+  },
+  {
+    "notebook": "06",
+    "arm": "band_ablation",
+    "baseline_macro_f1": 0.9833658271274193,
+    "drops": {
+      "visible": 0.3301637700957824,
+      "red_edge": 0.0644746845984529,
+      "nir": 0.023212892902772474,
+      "swir": 0.117926390978589,
+      "atmospheric": 0.07585777269380434
+    },
+    "notes": "band groups masked to the training mean at inference",
+    "timestamp": "2026-07-21T13:51:11+00:00"
+  },
+  {
+    "notebook": "06",
+    "arm": "calibration_eurosat",
+    "temperature": 1.2242234945297241,
+    "ece_before": 0.007433880741696095,
+    "ece_after": 0.004146360058372837,
+    "accuracy": 0.9841975308641975,
+    "notes": "T fitted on validation, applied to test; argmax unchanged by construction",
+    "timestamp": "2026-07-21T13:51:11+00:00"
+  },
+  {
+    "notebook": "06",
+    "arm": "confidence_under_shift",
+    "benchmark_mean_confidence": 0.9910867331328255,
+    "scene_mean_confidence": 0.728516697883606,
+    "benchmark_frac_above_0.9": 0.9733333333333334,
+    "scene_frac_above_0.9": 0.29094749547374776,
+    "notes": "no ground truth for the scene; this compares confidence distributions only",
+    "timestamp": "2026-07-21T13:51:13+00:00"
+  },
+  {
+    "notebook": "06",
+    "arm": "confusion_structure",
+    "vegetation_share_of_top10_confusions": 0.5378486055776892,
+    "per_class_f1": {
+      "AnnualCrop": 0.9787234042553191,
+      "Forest": 0.994475138121547,
+      "HerbaceousVegetation": 0.9833518312985573,
+      "Highway": 0.9825033647375505,
+      "Industrial": 0.9840425531914894,
+      "Pasture": 0.9634551495016612,
+      "PermanentCrop": 0.973190348525469,
+      "Residential": 0.9867256637168141,
+      "River": 0.9894179894179893,
+      "SeaLake": 0.9977728285077951
+    },
+    "notes": "scores the physical prediction made in NB01 before any model was trained",
+    "timestamp": "2026-07-21T13:51:16+00:00"
+  }
+]

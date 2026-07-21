@@ -16,6 +16,12 @@ outputs/features/
 # the record of what was actually run.
 !outputs/results.json
 !outputs/band_stats.json
+# The predicted land-cover maps are the deliverable of notebook 05 and are tiny
+# (~60 KB each), so they are committed as evidence — a reviewer can open them in
+# QGIS without running anything. The 6.7 MB RGB scene and the confidence raster
+# stay out: both are regenerable and neither is a result.
+!outputs/landcover_prediction.tif
+!outputs/landcover_prediction_sam.tif
 
 # python
 __pycache__/
@@ -34,3 +40,6 @@ venv/
 Thumbs.db
 .vscode/
 .idea/
+
+# transfer archive from Drive; its contents are extracted into figures/ and outputs/
+s2map_results.zip
