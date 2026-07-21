@@ -139,14 +139,14 @@ curve something to be measured against.
 
 ## What this project demonstrates
 
-| Notebook | Techniques |
-|---|---|
-| [01 — Data and spectral EDA](notebooks/01_data_and_spectral_eda.ipynb) | Sentinel-2 band physics, percentile stretching, true/false-colour composites, spectral signatures, NDVI/NDWI/NDBI, stratified splitting, leakage-free normalisation statistics |
-| [02 — Supervised baselines](notebooks/02_supervised_baselines.ipynb) | Classical features + LogReg/RandomForest, small CNN from scratch, ImageNet ResNet-18 with **13-channel stem inflation**, ViT-S/16 with interpolated position embeddings, multi-seed protocol, domain-appropriate augmentation |
-| [03 — Zero-shot CLIP](notebooks/03_zeroshot_clip.ipynb) | Contrastive vision-language models, zero-shot classification heads, a four-way prompt-engineering study, prompt ensembling, RemoteCLIP domain adaptation, embedding-space projection |
-| [04 — Few-shot label efficiency](notebooks/04_fewshot_label_efficiency.ipynb) | Frozen-feature extraction and caching, linear and k-NN probes, multi-draw few-shot protocol, probe-vs-fine-tuning crossover, the label-efficiency curve |
-| [05 — Chips to map](notebooks/05_chips_to_map.ipynb) | STAC search, windowed Cloud-Optimised GeoTIFF reads, multi-resolution band alignment, SCL cloud masking, **L1C→L2A domain shift**, sliding-window inference with overlap averaging, GeoTIFF output, SAM segment + classifier fusion, ESA WorldCover agreement analysis |
-| [06 — Explainability and failures](notebooks/06_explainability_and_failures.ipynb) | Grad-CAM (with its limits stated), causal band-group ablation, reliability diagrams, Expected Calibration Error, temperature scaling, confidence under domain shift, diagnosed failure gallery |
+| Notebook                                                                           | Techniques                                                                                                                                                                                                                                                                   |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [01 — Data and spectral EDA](notebooks/01_data_and_spectral_eda.ipynb)             | Sentinel-2 band physics, percentile stretching, true/false-colour composites, spectral signatures, NDVI/NDWI/NDBI, stratified splitting, leakage-free normalisation statistics                                                                                               |
+| [02 — Supervised baselines](notebooks/02_supervised_baselines.ipynb)               | Classical features + LogReg/RandomForest, small CNN from scratch, ImageNet ResNet-18 with**13-channel stem inflation**, ViT-S/16 with interpolated position embeddings, multi-seed protocol, domain-appropriate augmentation                                           |
+| [03 — Zero-shot CLIP](notebooks/03_zeroshot_clip.ipynb)                            | Contrastive vision-language models, zero-shot classification heads, a four-way prompt-engineering study, prompt ensembling, RemoteCLIP domain adaptation, embedding-space projection                                                                                         |
+| [04 — Few-shot label efficiency](notebooks/04_fewshot_label_efficiency.ipynb)      | Frozen-feature extraction and caching, linear and k-NN probes, multi-draw few-shot protocol, probe-vs-fine-tuning crossover, the label-efficiency curve                                                                                                                      |
+| [05 — Chips to map](notebooks/05_chips_to_map.ipynb)                               | STAC search, windowed Cloud-Optimised GeoTIFF reads, multi-resolution band alignment, SCL cloud masking,**L1C→L2A domain shift**, sliding-window inference with overlap averaging, GeoTIFF output, SAM segment + classifier fusion, ESA WorldCover agreement analysis |
+| [06 — Explainability and failures](notebooks/06_explainability_and_failures.ipynb) | Grad-CAM (with its limits stated), causal band-group ablation, reliability diagrams, Expected Calibration Error, temperature scaling, confidence under domain shift, diagnosed failure gallery                                                                               |
 
 ---
 
@@ -238,14 +238,14 @@ Written by the author, not hidden.
 **On Colab** (free T4 is sufficient; each notebook checkpoints to disk so a dead
 session never costs more than one chapter):
 
-| Notebook | Runtime | Colab |
-|---|---|---|
-| 01 Data and spectral EDA | ~10 min | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SaadH-077/s2-chips-to-map/blob/main/notebooks/01_data_and_spectral_eda.ipynb) |
-| 02 Supervised baselines | ~35 min | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SaadH-077/s2-chips-to-map/blob/main/notebooks/02_supervised_baselines.ipynb) |
-| 03 Zero-shot CLIP | ~20 min | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SaadH-077/s2-chips-to-map/blob/main/notebooks/03_zeroshot_clip.ipynb) |
-| 04 Few-shot label efficiency | ~30 min | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SaadH-077/s2-chips-to-map/blob/main/notebooks/04_fewshot_label_efficiency.ipynb) |
-| 05 Chips to map | ~25–40 min | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SaadH-077/s2-chips-to-map/blob/main/notebooks/05_chips_to_map.ipynb) |
-| 06 Explainability and failures | ~20 min | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SaadH-077/s2-chips-to-map/blob/main/notebooks/06_explainability_and_failures.ipynb) |
+| Notebook                       | Runtime     | Colab                                                                                                                                                                                                    |
+| ------------------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 01 Data and spectral EDA       | ~10 min     | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SaadH-077/s2-chips-to-map/blob/main/notebooks/01_data_and_spectral_eda.ipynb)       |
+| 02 Supervised baselines        | ~35 min     | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SaadH-077/s2-chips-to-map/blob/main/notebooks/02_supervised_baselines.ipynb)        |
+| 03 Zero-shot CLIP              | ~20 min     | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SaadH-077/s2-chips-to-map/blob/main/notebooks/03_zeroshot_clip.ipynb)               |
+| 04 Few-shot label efficiency   | ~30 min     | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SaadH-077/s2-chips-to-map/blob/main/notebooks/04_fewshot_label_efficiency.ipynb)    |
+| 05 Chips to map                | ~25–40 min | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SaadH-077/s2-chips-to-map/blob/main/notebooks/05_chips_to_map.ipynb)                |
+| 06 Explainability and failures | ~20 min     | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SaadH-077/s2-chips-to-map/blob/main/notebooks/06_explainability_and_failures.ipynb) |
 
 **Run them in order.** The chapters depend on each other's artefacts: 01 writes
 the split and normalisation statistics everything else uses, 02 writes the
@@ -319,15 +319,15 @@ $ make test
 - **EuroSAT** — Helber et al., *EuroSAT: A Novel Dataset and Deep Learning
   Benchmark for Land Use and Land Cover Classification*, IEEE JSTARS 2019.
   27,000 labelled 64×64 Sentinel-2 L1C chips, 13 bands, MIT licence.
-  <https://github.com/phelber/EuroSAT>
+  [https://github.com/phelber/EuroSAT](https://github.com/phelber/EuroSAT)
 - **Copernicus Sentinel-2** — imagery for notebook 05, free and open under the
   Copernicus programme licence, accessed through the AWS Earth Search STAC API
-  (<https://earth-search.aws.element84.com/v1>, collection `sentinel-2-l2a`,
+  ([https://earth-search.aws.element84.com/v1](https://earth-search.aws.element84.com/v1), collection `sentinel-2-l2a`,
   no authentication required).
 - **ESA WorldCover 2021 v200** — 10 m global land cover, CC-BY 4.0, used only as
-  an independent agreement reference. <https://esa-worldcover.org>
+  an independent agreement reference. [https://esa-worldcover.org](https://esa-worldcover.org)
 - **RemoteCLIP** — checkpoints released by the authors in OpenCLIP format.
-  <https://github.com/ChenDelong1999/RemoteCLIP>
+  [https://github.com/ChenDelong1999/RemoteCLIP](https://github.com/ChenDelong1999/RemoteCLIP)
 
 No imagery is committed to this repository; everything is downloaded at run time
 from the sources above.
