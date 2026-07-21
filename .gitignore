@@ -43,3 +43,6 @@ Thumbs.db
 
 # transfer archive from Drive; its contents are extracted into figures/ and outputs/
 s2map_results.zip
+
+# personal study notes, not part of the published project
+PROJECT_EXPLAINER.md
