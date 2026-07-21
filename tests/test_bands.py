@@ -93,6 +93,29 @@ def test_to_uint8_rgb_is_display_ready():
     assert rgb.dtype == np.uint8 and rgb.shape == (64, 64, 3)
 
 
+def test_band_order_check_accepts_the_reference_and_rejects_a_permutation():
+    """Guards the one bug that raises nothing and invalidates everything: a
+    permuted band axis. Real EuroSAT training-split means differ from the
+    published full-dataset means by well under a percent."""
+    reference = list(bands.EUROSAT_REFERENCE_MEAN)
+    ok, _ = bands.check_band_order(reference)
+    assert ok
+
+    jittered = [m * 1.01 for m in reference]  # a plausible train-split deviation
+    assert bands.check_band_order(jittered)[0]
+
+    swapped = reference.copy()
+    swapped[7], swapped[8] = swapped[8], swapped[7]  # B08 <-> B08A
+    ok, report = bands.check_band_order(swapped)
+    assert not ok
+    assert any("MISMATCH" in line for line in report)
+
+
+def test_band_order_check_rejects_a_wrong_band_count():
+    ok, report = bands.check_band_order([1.0, 2.0, 3.0])
+    assert not ok and "13 band means" in report[0]
+
+
 def test_band_index_rejects_unknown_bands():
     with pytest.raises(KeyError):
         bands.band_index("B99")

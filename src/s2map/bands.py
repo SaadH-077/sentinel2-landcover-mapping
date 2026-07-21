@@ -71,6 +71,44 @@ BAND_GROUPS: dict[str, tuple[str, ...]] = {
 L2A_MISSING_BANDS: tuple[str, ...] = ("B10",)
 
 
+# Published per-band statistics for the full 13-band EuroSAT dataset, as
+# distributed with torchgeo's EuroSAT loader. Used ONLY as an independent
+# cross-check that our loader produced the right array in the right band order:
+# if a mirror silently reorders bands, or hands back a different product, the
+# statistics we compute will not track these. Note B09 (~12) and B08A (~732) are
+# strikingly low compared to their neighbours — that unusual fingerprint is
+# exactly what makes this a sharp test of band order.
+#
+# They are NOT used for normalisation. This project normalises with statistics
+# computed on its own training split, because using dataset-wide published
+# numbers would leak test-set information into preprocessing.
+EUROSAT_REFERENCE_MEAN: tuple[float, ...] = (
+    1354.41, 1118.24, 1042.93, 947.63, 1199.47, 1999.79, 2369.22,
+    2296.83, 732.08, 12.11, 1819.01, 1118.92, 2594.14,
+)
+
+
+def check_band_order(mean_values, tolerance: float = 0.10) -> tuple[bool, list[str]]:
+    """Compare computed per-band means against the published EuroSAT reference.
+
+    Returns (ok, per-band report lines). A tolerance of 10% is generous on
+    purpose: our means come from the training split only, not the full dataset,
+    so small deviations are expected and meaningless. What this catches is the
+    failure that matters — a permuted or wrong band axis, which moves a band's
+    mean by hundreds of percent, not tens.
+    """
+    computed = np.asarray(mean_values, dtype=np.float64)
+    reference = np.asarray(EUROSAT_REFERENCE_MEAN, dtype=np.float64)
+    if computed.shape != reference.shape:
+        return False, [f"expected {reference.size} band means, got {computed.size}"]
+    rel = np.abs(computed - reference) / np.maximum(reference, 1e-9)
+    lines = [
+        f"{b:<6}{c:>10.1f}{r:>12.1f}{d:>10.1%}{'' if d <= tolerance else '   <-- MISMATCH'}"
+        for b, c, r, d in zip(BAND_IDS, computed, reference, rel)
+    ]
+    return bool(rel.max() <= tolerance), lines
+
+
 def band_index(band_id: str) -> int:
     """Channel index of a band id. Raises rather than returning -1."""
     try:
