@@ -167,38 +167,153 @@ def _load_from_tif_dir(tif_root: Path, source: str, cache_dir: Path) -> DatasetB
     return bundle
 
 
+def _normalize_class_name(name: str) -> str:
+    """Collapse a class name to a comparable key: lowercase, alphanumeric only."""
+    return "".join(ch for ch in str(name).lower() if ch.isalnum())
+
+
+# Every published copy of EuroSAT spells the classes slightly differently.
+# EuroSAT's own directories are CamelCase ("AnnualCrop"); the HuggingFace MSI
+# mirror uses spaced English with two names that are not merely reformatted but
+# genuinely different words ("Industrial Buildings" for "Industrial"). Matching
+# on a normalised key handles the formatting; the alias table handles the rest.
+_CLASS_ALIASES: dict[str, str] = {
+    "industrialbuildings": "Industrial",
+    "residentialbuildings": "Residential",
+    "permanentcrops": "PermanentCrop",
+    "annualcrops": "AnnualCrop",
+    "sealakes": "SeaLake",
+    "sea": "SeaLake",
+    "lake": "SeaLake",
+    "herbaceousvegetations": "HerbaceousVegetation",
+}
+_CLASS_LOOKUP: dict[str, str] = {
+    **{_normalize_class_name(c): c for c in cfg.CLASS_NAMES},
+    **_CLASS_ALIASES,
+}
+
+
+def _canonical_class(name: str) -> str:
+    """Map any published spelling of a EuroSAT class onto our canonical name."""
+    key = _normalize_class_name(name)
+    if key not in _CLASS_LOOKUP:
+        raise DatasetUnavailable(
+            f"class name {name!r} (normalised {key!r}) does not map onto any EuroSAT class. "
+            f"Known: {sorted(_CLASS_LOOKUP)}. Add it to _CLASS_ALIASES in data.py."
+        )
+    return _CLASS_LOOKUP[key]
+
+
+def _extract_local_archives(data_dir: Path) -> Path | None:
+    """Extract any EuroSAT zip already sitting under data_dir; return the tif root.
+
+    This exists because of a specific real failure: torchgeo successfully
+    downloads the 2 GB `EuroSATallBands.zip` and *then* raises HTTP 403 fetching
+    its own train/val/test split text files from a separate URL. The expensive
+    part has already succeeded at that point, and re-downloading it because a
+    3 KB text file 404'd would be absurd — so we look for the archive and finish
+    the job ourselves.
+    """
+    import zipfile
+
+    if not data_dir.exists():
+        return None
+    for archive in sorted(data_dir.rglob("*.zip")):
+        try:
+            with zipfile.ZipFile(archive) as zf:
+                names = zf.namelist()
+                if not any(n.lower().endswith(".tif") for n in names):
+                    continue
+                print(f"extracting {archive.name} ({len(names):,} entries) ...")
+                zf.extractall(archive.parent)
+        except zipfile.BadZipFile:
+            continue  # a partial download; the caller will fall through to the next source
+        root = _find_tif_root(data_dir)
+        if root is not None:
+            return root
+    return None
+
+
 def _try_torchgeo(data_dir: Path, cache_dir: Path) -> DatasetBundle:
     """torchgeo's EuroSAT loader (all 13 bands), with auto-download.
 
     torchgeo ships its own train/val/test text files; we ignore them and rebuild
     our own stratified split so that every notebook here shares one split
-    definition. The loader is used purely as a verified downloader.
+    definition. The loader is used purely as a verified downloader — and if it
+    fails partway, we salvage whatever it managed to download.
     """
     from torchgeo.datasets import EuroSAT
 
-    EuroSAT(root=str(data_dir), split="train", download=True, checksum=False)
-    tif_root = _find_tif_root(data_dir)
+    download_error: Exception | None = None
+    try:
+        EuroSAT(root=str(data_dir), split="train", download=True, checksum=False)
+    except Exception as exc:  # noqa: BLE001
+        download_error = exc  # the archive may still have arrived; check before giving up
+
+    tif_root = _find_tif_root(data_dir) or _extract_local_archives(data_dir)
     if tif_root is None:
-        raise DatasetUnavailable(f"torchgeo download finished but no class dirs under {data_dir}")
-    return _load_from_tif_dir(tif_root, "torchgeo.datasets.EuroSAT (13-band, auto-download)", cache_dir)
+        raise DatasetUnavailable(
+            f"torchgeo produced no usable class directories under {data_dir}"
+            + (f" (download error: {type(download_error).__name__}: {download_error})"
+               if download_error else "")
+        )
+    note = "torchgeo.datasets.EuroSAT (13-band)"
+    if download_error is not None:
+        note += f" — recovered from a partial download ({type(download_error).__name__})"
+    return _load_from_tif_dir(tif_root, note, cache_dir)
+
+
+def _hf_image_key(features) -> str:
+    """Find the column holding the image array, by name then by dtype."""
+    for key in ("image", "img", "tif", "bands", "images"):
+        if key in features:
+            return key
+    for key, feat in features.items():
+        if type(feat).__name__ in {"Image", "Array3D", "Sequence"}:
+            return key
+    raise DatasetUnavailable(
+        f"no image column found in features {list(features)} — this is probably a "
+        "metadata-only dataset (filenames and labels but no pixels)"
+    )
 
 
 def _try_huggingface(cache_dir: Path, repo: str) -> DatasetBundle:
-    """HuggingFace hub fallback. Handles both the MSI-tif and array layouts."""
-    from datasets import load_dataset
+    """HuggingFace hub fallback.
 
-    ds = load_dataset(repo, split="train")
+    Loads and concatenates EVERY split. The mirrors publish EuroSAT already
+    divided into train/validation/test (16,200 / 5,400 / 5,400), and taking only
+    `train` would silently hand the project 60% of the dataset under a split
+    that is not the one this repo defines — a bug that would not raise anything,
+    just quietly change every number.
+    """
+    from datasets import concatenate_datasets, get_dataset_split_names, load_dataset
+
+    split_names = get_dataset_split_names(repo)
+    parts = [load_dataset(repo, split=s) for s in split_names]
+    ds = concatenate_datasets(parts) if len(parts) > 1 else parts[0]
     n = len(ds)
-    xp, _, _ = _cache_paths(cache_dir)
+    print(f"{repo}: {len(split_names)} splits {split_names} -> {n:,} chips concatenated")
+
+    features = ds.features
+    label_key = "label" if "label" in features else ("labels" if "labels" in features else None)
+    if label_key is None:
+        raise DatasetUnavailable(f"no label column in {list(features)}")
+    image_key = _hf_image_key(features)
+    names = getattr(features[label_key], "names", None)
+    if names is not None:
+        # Map the mirror's label indices onto ours once, up front, so a naming
+        # mismatch fails here with a clear message rather than 20,000 rows in.
+        index_map = np.array([cfg.CLASS_NAMES.index(_canonical_class(nm)) for nm in names])
+        print(f"{repo}: label mapping {dict(zip(names, [cfg.CLASS_NAMES[i] for i in index_map]))}")
+    else:
+        index_map = None
+
     cache_dir.mkdir(parents=True, exist_ok=True)
+    xp, _, _ = _cache_paths(cache_dir)
     X = np.lib.format.open_memmap(
         xp, mode="w+", dtype=np.uint16, shape=(n, NUM_BANDS, CHIP_SIZE, CHIP_SIZE)
     )
     labels = np.zeros(n, dtype=np.int64)
-    feature_names = list(ds.features)
-    label_key = "label" if "label" in feature_names else "labels"
-    image_key = next(k for k in ("image", "img", "tif", "bands") if k in feature_names)
-    names = ds.features[label_key].names if hasattr(ds.features[label_key], "names") else None
 
     for i, rec in enumerate(ds):
         arr = np.asarray(rec[image_key])
@@ -206,13 +321,16 @@ def _try_huggingface(cache_dir: Path, repo: str) -> DatasetBundle:
             arr = np.transpose(arr, (2, 0, 1))
         if arr.shape != (NUM_BANDS, CHIP_SIZE, CHIP_SIZE):
             raise DatasetUnavailable(
-                f"{repo} record {i} has shape {arr.shape}; expected 13x64x64 "
+                f"{repo} record {i} has shape {arr.shape}; expected (13, 64, 64) "
                 "(is this the RGB-only variant?)"
             )
         X[i] = arr.astype(np.uint16)
-        raw_label = rec[label_key]
-        name = names[raw_label] if names is not None else str(raw_label)
-        labels[i] = cfg.CLASS_NAMES.index(name)
+        raw = rec[label_key]
+        labels[i] = index_map[raw] if index_map is not None else cfg.CLASS_NAMES.index(
+            _canonical_class(raw)
+        )
+        if i and i % 5000 == 0:
+            print(f"  converted {i:,}/{n:,}")
     X.flush()
     del X
     return _finalize_cache(cache_dir, labels, f"huggingface:{repo}")
@@ -232,18 +350,21 @@ def load_eurosat_ms(
     if cached is not None:
         return cached
 
-    local = _find_tif_root(data_dir)
+    local = _find_tif_root(data_dir) or _extract_local_archives(data_dir)
     if local is not None:
         return _load_from_tif_dir(local, f"local GeoTIFF tree at {local}", cache_dir)
-    attempts.append(f"local GeoTIFF tree under {data_dir}: not found")
+    attempts.append(f"local GeoTIFF tree or archive under {data_dir}: not found")
 
     if not allow_download:
         raise DatasetUnavailable("allow_download=False and no local copy found:\n  " + "\n  ".join(attempts))
 
+    # Order matters: the HuggingFace MSI mirror is a single verified artefact
+    # with all 27,000 chips, whereas torchgeo also fetches split text files from
+    # a separate URL that has been observed returning HTTP 403 — costing a 2 GB
+    # download before it fails. Cheapest reliable path first.
     for label, fn in (
-        ("torchgeo.datasets.EuroSAT", lambda: _try_torchgeo(data_dir, cache_dir)),
         ("hf:blanchon/EuroSAT_MSI", lambda: _try_huggingface(cache_dir, "blanchon/EuroSAT_MSI")),
-        ("hf:torchgeo/eurosat", lambda: _try_huggingface(cache_dir, "torchgeo/eurosat")),
+        ("torchgeo.datasets.EuroSAT", lambda: _try_torchgeo(data_dir, cache_dir)),
     ):
         try:
             bundle = fn()

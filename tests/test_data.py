@@ -84,6 +84,32 @@ def test_few_shot_draws_vary_with_seed(labels):
     assert not np.array_equal(a, b), "different draws must differ, or k=1 variance is unmeasurable"
 
 
+def test_canonical_class_handles_every_published_spelling():
+    """Regression test for a real failure: the HuggingFace EuroSAT MSI mirror
+    labels classes "Annual Crop" and "Industrial Buildings", not "AnnualCrop"
+    and "Industrial", which made the loader raise deep inside the conversion."""
+    hf_msi_names = [
+        "Annual Crop", "Forest", "Herbaceous Vegetation", "Highway",
+        "Industrial Buildings", "Pasture", "Permanent Crop",
+        "Residential Buildings", "River", "SeaLake",
+    ]
+    mapped = [data._canonical_class(n) for n in hf_msi_names]
+    assert mapped == list(data.cfg.CLASS_NAMES), mapped
+
+    # EuroSAT's own directory names must be identity-mapped
+    for name in data.cfg.CLASS_NAMES:
+        assert data._canonical_class(name) == name
+    # and formatting variants must not matter
+    assert data._canonical_class("annual_crop") == "AnnualCrop"
+    assert data._canonical_class("SEA LAKE") == "SeaLake"
+
+
+def test_canonical_class_rejects_an_unknown_name_loudly():
+    with pytest.raises(data.DatasetUnavailable) as exc:
+        data._canonical_class("Rainforest")
+    assert "does not map onto any EuroSAT class" in str(exc.value)
+
+
 def test_band_stats_are_computed_on_train_only():
     rng = np.random.default_rng(0)
     X = rng.random((100, 13, 8, 8)).astype(np.float32)
