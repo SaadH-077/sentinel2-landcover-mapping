@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "s2map"
+version = "0.1.0"
+description = "Sentinel-2: from chips to map — label-efficient land cover with VLMs"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 110
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = [
+    "E501",   # long lines are usually the explanatory docstrings, which are the point
+    "B008",
+    # zip() truncation is deliberate throughout viz.py: a subplot grid is padded to a
+    # full rectangle and is legitimately longer than the data it renders.
+    "B905",
+    # `isinstance(x, (int, float))` reads better than the PEP 604 form here and works
+    # on the older Python that some Colab runtimes still pin.
+    "UP038",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402"]

@@ -1,0 +1,36 @@
+# The build brief is a private working document, not part of the published
+# project. Delete this line if you want it in the repo's history.
+PROJECT_BRIEF_s2_chips_to_map.txt
+
+# data is downloaded, never committed (EuroSAT MS is ~2 GB extracted)
+data/
+
+# large or regenerable outputs
+outputs/*.pt
+outputs/*.pth
+outputs/*.npy
+outputs/*.npz
+outputs/*.tif
+outputs/features/
+# results.json IS committed: the README tables are generated from it, so it is
+# the record of what was actually run.
+!outputs/results.json
+!outputs/band_stats.json
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# notebooks
+.ipynb_checkpoints/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

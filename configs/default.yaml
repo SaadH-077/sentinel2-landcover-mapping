@@ -1,0 +1,39 @@
+# Default experiment configuration.
+# Loaded by s2map.config.load_config(); anything omitted keeps the dataclass
+# default in src/s2map/config.py. Notebooks print the resolved config so that
+# the run and its settings are recorded together.
+
+seed: 42
+seeds: [0, 1, 2]          # every trained arm is reported as mean +/- std over these
+
+split:
+  train_frac: 0.70
+  val_frac: 0.15
+  test_frac: 0.15
+  seed: 42                # fixed forever: changing it invalidates every cache
+
+train:
+  epochs: 30
+  batch_size: 128
+  lr: 0.0003              # AdamW; conservative because the pretrained stems are fine-tuned
+  weight_decay: 0.0001
+  warmup_epochs: 2        # protects the freshly adapted 13-channel stem from the first big step
+  patience: 10            # early stopping on VALIDATION macro-F1, never on test
+  label_smoothing: 0.0
+  amp: true               # ~2x throughput on a T4
+  num_workers: 2          # Colab gives 2 vCPUs; more workers just thrash
+  grad_clip: 1.0
+
+# Few-shot sweep (notebook 04)
+few_shot_k: [1, 2, 5, 10, 20, 50, 100]
+few_shot_draws: 5         # random label draws per (encoder, k); at k=1 one draw is not a result
+
+# Notebook 05 area of interest.
+# Bay of Cadiz / Puerto de Santa Maria, Spain: sea, salt marsh, river, farmland,
+# dense urban and industrial port within one ~15 km box, so every EuroSAT class
+# except forest has a plausible presence. Summer window for low cloud.
+aoi:
+  name: "Bay of Cadiz, Spain"
+  bbox: [-6.30, 36.48, -6.12, 36.62]   # lon_min, lat_min, lon_max, lat_max (EPSG:4326)
+  date_range: "2023-06-01/2023-09-30"
+  max_cloud_cover: 10
