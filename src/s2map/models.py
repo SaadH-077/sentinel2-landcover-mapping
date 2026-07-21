@@ -27,6 +27,7 @@ advantage you were trying to keep.
 
 from __future__ import annotations
 
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -244,7 +245,6 @@ def extract_features(model: nn.Module, loader, device: str = "cuda", amp: bool =
     Used by NB04. Extraction is the slow part of a few-shot study and probing is
     instant, so this is always run once and cached to disk.
     """
-    import numpy as np
 
     model.eval().to(device)
     feats, labels = [], []
@@ -256,6 +256,73 @@ def extract_features(model: nn.Module, loader, device: str = "cuda", amp: bool =
         feats.append(f.float().cpu().numpy())
         labels.append(np.asarray(y))
     return np.concatenate(feats), np.concatenate(labels)
+
+
+def grad_cam(model: nn.Module, x, target=None, layer: nn.Module | None = None):
+    """Grad-CAM heatmaps for a batch -> (cams (B, H, W) in [0, 1], predicted idx).
+
+    Weights the final conv feature maps by the gradient of the target class
+    score, ReLUs the result, and upsamples to input size.
+
+    ON HOOKS, AND THE TRAP THIS FUNCTION EXISTS TO AVOID. A torch hook's RETURN
+    VALUE is meaningful: a forward hook returning non-None *replaces the
+    module's output*, and a backward hook returning non-None *replaces
+    grad_input*. So capturing state with a one-line lambda around
+    `dict.setdefault` is silently wrong — setdefault returns the stored value,
+    which PyTorch then tries to substitute, giving
+
+        RuntimeError: Backward hook returned an invalid number of grad_input,
+        got 8, but expected 1
+
+    where 8 is simply the batch size of the tensor it was handed. The forward
+    side is worse because it does not raise: on the second call setdefault
+    returns the *first* activation, so the layer's output is quietly replaced by
+    a stale tensor from a previous batch. Both hooks below are plain functions
+    that return None, and both are removed in a finally block so an exception
+    mid-backward cannot leave the model permanently hooked.
+
+    CAVEAT ON INTERPRETATION, which NB06 repeats: with 64x64 inputs and a
+    stride-32 backbone the final feature map is 2x2, so these CAMs are upsampled
+    from four values. They are a weak hint about which quadrant mattered, not a
+    spatial explanation. The band ablation is the meaningful attribution method
+    for this data.
+    """
+    import torch.nn.functional as F
+
+    if layer is None:
+        layer = getattr(getattr(model, "backbone", model), "layer4", None)
+        if layer is None:
+            raise ValueError("could not infer a target layer; pass layer= explicitly")
+
+    store: dict[str, torch.Tensor] = {}
+
+    def forward_hook(module, inputs, output) -> None:
+        store["activations"] = output
+
+    def backward_hook(module, grad_input, grad_output) -> None:
+        store["gradients"] = grad_output[0]
+
+    handles = [
+        layer.register_forward_hook(forward_hook),
+        layer.register_full_backward_hook(backward_hook),
+    ]
+    try:
+        model.zero_grad(set_to_none=True)
+        with torch.enable_grad():
+            logits = model(x)
+            index = logits.argmax(dim=1) if target is None else torch.as_tensor(target).to(logits.device)
+            logits[torch.arange(len(x), device=logits.device), index].sum().backward()
+    finally:
+        for h in handles:
+            h.remove()
+
+    weights = store["gradients"].mean(dim=(2, 3), keepdim=True)
+    cam = F.relu((weights * store["activations"]).sum(dim=1, keepdim=True))
+    cam = F.interpolate(cam, size=tuple(x.shape[-2:]), mode="bilinear", align_corners=False)
+    cam = cam.squeeze(1).detach().float().cpu().numpy()
+    cam -= cam.min(axis=(1, 2), keepdims=True)
+    cam = cam / np.maximum(cam.max(axis=(1, 2), keepdims=True), 1e-8)
+    return cam, index.detach().cpu().numpy()
 
 
 def band_mask_model(model: nn.Module, keep: list[int], fill: float = 0.0):

@@ -82,3 +82,50 @@ def test_cosine_warmup_schedule_shape():
     assert fn(1) == pytest.approx(1.0)   # warmup complete
     assert fn(2) > fn(5) > fn(9)         # monotonically decaying thereafter
     assert fn(9) > 0                     # never reaches zero
+
+
+# --------------------------------------------------------------------------
+# Grad-CAM hooks
+# --------------------------------------------------------------------------
+def test_grad_cam_runs_on_a_batch_and_returns_normalised_maps():
+    """Regression: hooks written as `dict.setdefault` lambdas RETURN a value,
+    which torch reads as replacement grad_input, giving
+    "Backward hook returned an invalid number of grad_input, got 8, expected 1"
+    where 8 was simply the batch size."""
+    model = M.build_resnet18(13, 10, pretrained=False).eval()
+    x = torch.randn(8, 13, 64, 64)
+    cams, idx = M.grad_cam(model, x)
+
+    assert cams.shape == (8, 64, 64), cams.shape
+    assert idx.shape == (8,)
+    assert cams.min() >= 0.0 and cams.max() <= 1.0
+    assert np.all(np.isfinite(cams))
+
+
+def test_grad_cam_removes_its_hooks_and_leaves_the_model_unchanged():
+    """The forward-hook version of the same bug does NOT raise: it silently
+    replaces the layer's output with a stale tensor. Check the model still
+    computes exactly what it did before being hooked."""
+    model = M.build_resnet18(13, 10, pretrained=False).eval()
+    x = torch.randn(4, 13, 64, 64)
+    with torch.no_grad():
+        before = model(x).clone()
+
+    M.grad_cam(model, x)
+    M.grad_cam(model, x)  # twice: setdefault would now serve the first batch's activations
+
+    layer = model.backbone.layer4
+    assert not layer._forward_hooks, "forward hook was left attached"
+    assert not layer._backward_hooks and not getattr(layer, "_backward_pre_hooks", {}), \
+        "backward hook was left attached"
+    with torch.no_grad():
+        after = model(x)
+    torch.testing.assert_close(before, after)
+
+
+def test_grad_cam_accepts_an_explicit_target_class():
+    model = M.build_resnet18(13, 10, pretrained=False).eval()
+    x = torch.randn(3, 13, 64, 64)
+    target = torch.tensor([1, 2, 3])
+    _, idx = M.grad_cam(model, x, target=target)
+    np.testing.assert_array_equal(idx, [1, 2, 3])
