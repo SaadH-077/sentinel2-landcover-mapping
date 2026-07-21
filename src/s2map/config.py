@@ -2,7 +2,7 @@
 
 Single source of truth for anything a notebook would otherwise hard-code.
 Every path is derived from the repository root so the same code runs from a
-local checkout and from `/content/s2-chips-to-map` on Colab.
+local checkout and from `/content/sentinel2-landcover-mapping` on Colab.
 """
 
 from __future__ import annotations

@@ -509,5 +509,127 @@
     },
     "notes": "scores the physical prediction made in NB01 before any model was trained",
     "timestamp": "2026-07-21T13:51:16+00:00"
+  },
+  {
+    "notebook": "07",
+    "arm": "verification",
+    "prompt_sweep": {
+      "CLIP|v1_raw_labels": {
+        "accuracy": 0.2958024691358025,
+        "macro_f1": 0.24676834571871228
+      },
+      "CLIP|v2_simple_template": {
+        "accuracy": 0.36049382716049383,
+        "macro_f1": 0.3243411272871193
+      },
+      "CLIP|v3_natural_names": {
+        "accuracy": 0.2985185185185185,
+        "macro_f1": 0.2511680192387404
+      },
+      "CLIP|v4_prompt_ensemble": {
+        "accuracy": 0.3869135802469136,
+        "macro_f1": 0.33467847780089677
+      },
+      "CLIP|v5_raw_ensemble": {
+        "accuracy": 0.3790123456790123,
+        "macro_f1": 0.3592026214864973
+      },
+      "RemoteCLIP|v1_raw_labels": {
+        "accuracy": 0.24666666666666667,
+        "macro_f1": 0.2238016608786279
+      },
+      "RemoteCLIP|v2_simple_template": {
+        "accuracy": 0.21185185185185185,
+        "macro_f1": 0.1887851924554635
+      },
+      "RemoteCLIP|v3_natural_names": {
+        "accuracy": 0.2619753086419753,
+        "macro_f1": 0.17863558512659802
+      },
+      "RemoteCLIP|v4_prompt_ensemble": {
+        "accuracy": 0.26271604938271603,
+        "macro_f1": 0.18650501159783447
+      },
+      "RemoteCLIP|v5_raw_ensemble": {
+        "accuracy": 0.24469135802469136,
+        "macro_f1": 0.21443760938196782
+      }
+    },
+    "best_strategy_per_model": {
+      "CLIP": "v5_raw_ensemble",
+      "RemoteCLIP": "v1_raw_labels"
+    },
+    "image_prototype_macro_f1": {
+      "CLIP": {
+        "1": [
+          0.41246526112458143,
+          0.05983612571491907
+        ],
+        "5": [
+          0.6046601310518546,
+          0.04246473719018577
+        ],
+        "20": [
+          0.6952332267246699,
+          0.011224911155047534
+        ]
+      },
+      "RemoteCLIP": {
+        "1": [
+          0.45522455954475716,
+          0.04962908384254413
+        ],
+        "5": [
+          0.6963720875053612,
+          0.016537637238702357
+        ],
+        "20": [
+          0.7748437629673826,
+          0.0027147156440670006
+        ]
+      }
+    },
+    "text_embedding_geometry": {
+      "CLIP": {
+        "mean_offdiag_text_similarity": 0.8800709843635559,
+        "max_offdiag_text_similarity": 0.958649754524231,
+        "text_image_diagonal_hits": 4
+      },
+      "RemoteCLIP": {
+        "mean_offdiag_text_similarity": 0.7876920700073242,
+        "max_offdiag_text_similarity": 0.8866329193115234,
+        "text_image_diagonal_hits": 4
+      }
+    },
+    "atmospheric_only_accuracy": 0.677283950617284,
+    "atmospheric_only_macro_f1": 0.6630550011635238,
+    "cluster_purity": 0.6204279163878064,
+    "split_comparison": {
+      "random (as used throughout)": {
+        "accuracy": 0.9854320987654321,
+        "macro_f1": 0.9846276458639623,
+        "val_macro_f1": 0.9855582254864436,
+        "epochs": 15
+      },
+      "blocked by pseudo-scene": {
+        "accuracy": 0.9716686674669868,
+        "macro_f1": 0.9639079862042745,
+        "val_macro_f1": 0.9568675908890831,
+        "epochs": 15
+      }
+    },
+    "leakage_upper_bound_macro_f1_drop": 0.020719659659687806,
+    "ablations_3_seed": {
+      "resnet18_rgb": {
+        "mean": 0.9787988765047878,
+        "std": 0.000888017383753809
+      },
+      "resnet18_randomstem": {
+        "mean": 0.9826885688638779,
+        "std": 0.0007521509334740158
+      }
+    },
+    "notes": "confirmatory analyses of NB03/NB06 results; blocked split is an atmospheric-fingerprint proxy",
+    "timestamp": "2026-07-21T15:01:19+00:00"
   }
 ]

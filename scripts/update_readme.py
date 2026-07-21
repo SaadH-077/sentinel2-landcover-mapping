@@ -33,7 +33,30 @@ PLACEHOLDER = (
 def results_section(results: list[dict]) -> str:
     if not results:
         return PLACEHOLDER
-    return E.results_table(results, notebooks={"02", "03"})
+    # `_ceiling` duplicates arm2_resnet18_13band under a different name — it exists
+    # so NB04 can look up one number, not as a separate experiment. Any arm whose
+    # name starts with "_" is bookkeeping and is kept out of the public table.
+    rows = [r for r in results if not str(r.get("arm", "")).startswith("_")]
+
+    # Chapter 07 re-ran the two NB02 ablations at 3 seeds. Those measurements
+    # supersede the single-seed rows, so the table shows the better ones —
+    # rendered from the NB07 entry rather than copied into results.json, so the
+    # ledger keeps exactly one record of each measurement.
+    verification = next((r for r in results if r.get("arm") == "verification"), None)
+    if verification:
+        labels = {
+            "resnet18_rgb": ("RGB only", "3 seeds (NB07) — supersedes the NB02 single-seed run"),
+            "resnet18_randomstem": ("13-band", "3 seeds (NB07) — pretrained stem discarded"),
+        }
+        superseded = {f"arm2_{k}" for k in labels}
+        rows = [r for r in rows if r.get("arm") not in superseded]
+        for arm, stats in (verification.get("ablations_3_seed") or {}).items():
+            name, note = labels.get(arm, (arm, "3 seeds (NB07)"))
+            rows.append({
+                "notebook": "02", "arm": f"arm2_{arm}", "input": name,
+                "test_macro_f1": stats, "notes": note,
+            })
+    return E.results_table(rows, notebooks={"02", "03"})
 
 
 def label_efficiency_section(results: list[dict]) -> str:
